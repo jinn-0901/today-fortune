@@ -1,5 +1,13 @@
 const $ = (selector) => document.querySelector(selector);
 
+const STEM_ELEMENTS = { "甲":"목", "乙":"목", "丙":"화", "丁":"화", "戊":"토", "己":"토", "庚":"금", "辛":"금", "壬":"수", "癸":"수" };
+const ELEMENT_NAMES = ["목", "화", "토", "금", "수"];
+const ELEMENT_COLORS = { "목":"#658b68", "화":"#bd765d", "토":"#b59a62", "금":"#8c9ba7", "수":"#6486a8" };
+const TIME_HOURS = { "子時":23, "丑時":1, "寅時":3, "卯時":5, "辰時":7, "巳時":9, "午時":11, "未時":13, "申時":15, "酉時":17, "戌時":19, "亥時":21 };
+
+let currentChart = null;
+let currentBirth = null;
+
 function localDateString(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -14,56 +22,187 @@ function formatKoreanDate(value) {
   }).format(date);
 }
 
-const dailyMessages = [
-  ["차분히 방향을 살펴볼 때", "작은 선택도 차분히 살피면 더 나은 흐름으로 이어질 수 있어요. 오늘은 익숙한 일부터 하나씩 정리해 보세요."],
-  ["꾸준함이 힘을 발휘하는 날", "눈에 띄는 변화보다 반복하는 과정에 의미가 있습니다. 서두르지 말고 지금의 리듬을 지켜 보세요."],
-  ["새로운 관점을 열어 보는 날", "평소와 다른 방법을 가볍게 시도해 보세요. 익숙한 문제에서도 새로운 가능성을 발견할 수 있습니다."],
-  ["주변을 살피며 균형을 찾는 날", "나의 속도와 주변의 흐름을 함께 살펴보세요. 충분히 듣고 생각한 뒤 결정해도 늦지 않습니다."],
-  ["작은 정리가 큰 여유를 만드는 날", "미뤄 둔 일을 하나씩 정리하면 생각보다 마음이 가벼워질 수 있어요. 가장 쉬운 일부터 시작해 보세요."],
-  ["배움에 집중하기 좋은 날", "모르는 것을 그냥 지나치지 말고 한 번 더 살펴보세요. 오늘의 작은 호기심이 다음 단계의 밑거름이 됩니다."],
-  ["잠시 멈춰 흐름을 돌아보는 날", "바쁘게 움직이기보다 지금까지의 과정을 돌아보세요. 잠깐의 여유가 다음 선택을 또렷하게 해줄 수 있습니다."]
-];
+function parseDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+  if (!match) throw new Error("생년월일 또는 날짜를 확인해 주세요.");
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const check = new Date(year, month - 1, day);
+  if (check.getFullYear() !== year || check.getMonth() !== month - 1 || check.getDate() !== day) {
+    throw new Error("실제 달력에 존재하는 날짜를 입력해 주세요.");
+  }
+  if (year < 1900 || year > 2100) throw new Error("현재 계산 범위는 1900년부터 2100년까지입니다.");
+  return { year, month, day };
+}
 
-function messageForDate(value) {
-  const date = new Date(`${value}T12:00:00`);
-  const seed = Math.abs(date.getFullYear() * 372 + (date.getMonth() + 1) * 31 + date.getDate());
-  return dailyMessages[seed % dailyMessages.length];
+function getLunarObject(birth, hour) {
+  const { year, month, day } = birth;
+  const hourValue = hour === "unknown" ? 12 : TIME_HOURS[hour];
+  const minute = hour === "unknown" ? 0 : 30;
+  const calendarType = document.querySelector('input[name="calendarType"]:checked').value;
+  if (calendarType === "lunar") {
+    return Lunar.fromYmdHms(year, month, day, hourValue, minute, 0);
+  }
+  return Solar.fromYmdHms(year, month, day, hourValue, minute, 0).getLunar();
+}
+
+function countElements(pillars) {
+  const counts = { "목":0, "화":0, "토":0, "금":0, "수":0 };
+  pillars.forEach((pillar) => {
+    [...pillar].forEach((character) => {
+      const element = STEM_ELEMENTS[character];
+      if (element) counts[element] += 1;
+    });
+  });
+  return counts;
+}
+
+function renderChart(eightChar, birth, timeUnknown) {
+  const pillars = [
+    { label:"년주", value:eightChar.getYear(), god:eightChar.getYearShiShenGan() },
+    { label:"월주", value:eightChar.getMonth(), god:eightChar.getMonthShiShenGan() },
+    { label:"일주", value:eightChar.getDay(), god:"일간" },
+    { label:"시주", value:timeUnknown ? "미상" : eightChar.getTime(), god:timeUnknown ? "미상" : eightChar.getTimeShiShenGan() }
+  ];
+  const activePillars = timeUnknown ? pillars.slice(0, 3) : pillars;
+  const elements = countElements(activePillars.map((item) => item.value));
+  const total = Object.values(elements).reduce((sum, value) => sum + value, 0);
+  const elementMarkup = ELEMENT_NAMES.map((name) => {
+    const count = elements[name];
+    const width = total ? (count / total) * 100 : 0;
+    return `<div class="element-row"><span>${name}</span><div class="element-track"><i style="width:${width}%;background:${ELEMENT_COLORS[name]}"></i></div><b>${count}</b></div>`;
+  }).join("");
+  const pillarMarkup = pillars.map((item) => `
+    <div class="pillar-cell">
+      <span class="pillar-label">${item.label}</span>
+      <strong>${item.value}</strong>
+      <small>${item.god}</small>
+    </div>`).join("");
+  $("#sajuResult").innerHTML = `
+    <div class="result-heading"><span>SAJU CHART</span><strong>사주 원국</strong></div>
+    <div class="pillars-grid">${pillarMarkup}</div>
+    <div class="result-summary">
+      <div><span class="result-caption">일간 · 나를 나타내는 기준</span><strong>${eightChar.getDayGan()} <small>(${STEM_ELEMENTS[eightChar.getDayGan()] || "오행"})</small></strong></div>
+      <p>${timeUnknown ? "출생 시간을 알 수 없어 시주는 계산에서 제외했습니다." : "입력한 출생 시간의 시각 구간을 기준으로 시주를 계산했습니다."}</p>
+    </div>
+    <div class="element-summary"><div><strong>오행 분포</strong><span>천간과 지지의 기본 오행 기준</span></div>${elementMarkup}</div>
+    <p class="result-note">오행 수치는 네 기둥의 천간·지지를 단순 집계한 값이며, 지장간·계절·왕쇠를 반영한 용신 판단과는 다릅니다.</p>
+  `;
+  $("#sajuResult").hidden = false;
+  currentChart = eightChar;
+  currentBirth = birth;
+}
+
+function elementRelation(dayElement, dateElement) {
+  const generates = { "목":"화", "화":"토", "토":"금", "금":"수", "수":"목" };
+  const controls = { "목":"토", "토":"수", "수":"화", "화":"금", "금":"목" };
+  if (dayElement === dateElement) return "비견·겁재의 관계";
+  if (generates[dayElement] === dateElement) return "식신·상관의 관계";
+  if (generates[dateElement] === dayElement) return "정인·편인의 관계";
+  if (controls[dayElement] === dateElement) return "정재·편재의 관계";
+  return "관성의 관계";
+}
+
+function buildDailyReading(value) {
+  if (!currentChart) return null;
+  const { year, month, day } = parseDate(value);
+  const targetLunar = Solar.fromYmdHms(year, month, day, 12, 0, 0).getLunar();
+  const targetPillar = targetLunar.getEightChar();
+  const targetDay = targetPillar.getDay();
+  const targetGan = targetPillar.getDayGan();
+  const natalGan = currentChart.getDayGan();
+  const natalElement = STEM_ELEMENTS[natalGan];
+  const dailyElement = STEM_ELEMENTS[targetGan];
+  const relation = elementRelation(natalElement, dailyElement);
+  const titleByRelation = {
+    "비견·겁재의 관계":"주도성과 균형을 살펴보는 날",
+    "식신·상관의 관계":"생각을 표현하고 정리하는 날",
+    "정인·편인의 관계":"배움과 점검에 집중하는 날",
+    "정재·편재의 관계":"현실적인 선택을 살펴보는 날",
+    "관성의 관계":"책임과 약속을 돌아보는 날"
+  };
+  const textByRelation = {
+    "비견·겁재의 관계":"오늘의 일진은 나와 같은 오행의 기운으로 분류됩니다. 전통 명리학에서는 자기 주도성이나 경쟁·협력의 주제를 함께 살펴봅니다. 주변과 속도를 맞추며 결정해 보세요.",
+    "식신·상관의 관계":"오늘의 일진은 나의 일간이 생하는 오행으로 분류됩니다. 전통 명리학에서는 표현과 결과물, 배움의 활용이라는 주제로 풀이합니다. 떠오른 생각을 차분히 정리해 보세요.",
+    "정인·편인의 관계":"오늘의 일진은 나를 생하는 오행으로 분류됩니다. 전통 명리학에서는 배움과 도움, 생각을 정돈하는 주제로 풀이합니다. 새로운 정보를 확인하고 기본을 점검해 보세요.",
+    "정재·편재의 관계":"오늘의 일진은 내가 극하는 오행으로 분류됩니다. 전통 명리학에서는 현실적인 목표와 자원 관리의 주제로 풀이합니다. 우선순위를 정하고 필요한 선택인지 살펴보세요.",
+    "관성의 관계":"오늘의 일진은 나를 극하는 오행으로 분류됩니다. 전통 명리학에서는 규칙과 책임, 역할의 주제로 풀이합니다. 해야 할 일을 정리하고 무리하지 않는 범위에서 약속을 지켜 보세요."
+  };
+  return {
+    title: titleByRelation[relation],
+    text: textByRelation[relation],
+    detail: `${formatKoreanDate(value)} · 일진 ${targetDay} · 나의 일간 ${natalGan}(${natalElement}) · ${relation}`,
+    targetDay
+  };
 }
 
 function updateDailyFortune(value) {
-  const [title, text] = messageForDate(value);
-  $("#dailyTitle").textContent = title;
-  $("#dailyText").textContent = text;
+  const reading = buildDailyReading(value);
+  if (!reading) {
+    $("#dailyTitle").textContent = "사주 정보를 먼저 입력해 주세요";
+    $("#dailyText").textContent = "생년월일을 입력하면 선택한 날짜의 간지와 나의 일간을 비교한 전통 오행 관계 해석을 보여드립니다.";
+    $("#dateResult").textContent = "사주 정보를 먼저 입력해 주세요.";
+    return;
+  }
+  $("#dailyTitle").textContent = reading.title;
+  $("#dailyText").textContent = reading.text;
+  $("#dateResult").textContent = reading.detail;
+}
+
+function showError(message) {
+  const result = $("#formResult");
+  result.hidden = false;
+  result.textContent = message;
 }
 
 const today = localDateString();
 $("#todayDate").textContent = formatKoreanDate(today);
 $("#fortuneDate").value = today;
-updateDailyFortune(today);
 
 $("#sajuForm").addEventListener("submit", (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  const birthDate = form.get("birthDate");
-  const calendarType = form.get("calendarType") === "lunar" ? "음력" : "양력";
-  const birthTime = form.get("birthTime");
-  const timeText = birthTime === "unknown" ? "출생 시간 미상" : birthTime;
-  const result = $("#formResult");
-  result.hidden = false;
-  result.textContent = `${formatKoreanDate(birthDate)} · ${calendarType} · ${timeText}. 입력 정보가 확인됐어요. 정통 사주 명식과 개인별 풀이는 만세력 계산 엔진을 연결한 뒤 제공할 예정입니다. 입력 정보는 저장하거나 서버로 전송하지 않습니다.`;
+  try {
+    if (typeof Lunar === "undefined" || typeof Solar === "undefined") {
+      throw new Error("만세력 계산 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하고 페이지를 새로고침해 주세요.");
+    }
+    const form = new FormData(event.currentTarget);
+    const birth = parseDate(form.get("birthDate"));
+    const time = form.get("birthTime");
+    const lunar = getLunarObject(birth, time);
+    const eightChar = lunar.getEightChar();
+    eightChar.setSect(2);
+    renderChart(eightChar, birth, time === "unknown");
+    $("#formResult").hidden = true;
+    updateDailyFortune($("#fortuneDate").value || today);
+    $("#sajuResult").scrollIntoView({ behavior:"smooth", block:"nearest" });
+  } catch (error) {
+    showError(error.message || "사주를 계산하지 못했습니다. 입력한 정보를 확인해 주세요.");
+  }
 });
 
 $("#checkDate").addEventListener("click", () => {
   const value = $("#fortuneDate").value;
-  const output = $("#dateResult");
   if (!value) {
-    output.textContent = "먼저 날짜를 선택해 주세요.";
+    $("#dateResult").textContent = "먼저 날짜를 선택해 주세요.";
     return;
   }
-  const [title, text] = messageForDate(value);
-  output.textContent = `${formatKoreanDate(value)} — ${title}. ${text}`;
-  updateDailyFortune(value);
-  $("#todayDate").textContent = formatKoreanDate(value);
+  try {
+    parseDate(value);
+    if (!currentChart) {
+      $("#dateResult").textContent = "먼저 나의 사주 정보를 입력해 주세요.";
+      return;
+    }
+    updateDailyFortune(value);
+    $("#todayDate").textContent = formatKoreanDate(value);
+  } catch (error) {
+    $("#dateResult").textContent = error.message;
+  }
+});
+
+$("#fortuneDate").addEventListener("change", () => {
+  const value = $("#fortuneDate").value;
+  if (value && currentChart) updateDailyFortune(value);
 });
 
 const menuToggle = $("#menuToggle");
