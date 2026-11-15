@@ -1,6 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 
-const STEM_ELEMENTS = { "甲":"목", "乙":"목", "丙":"화", "丁":"화", "戊":"토", "己":"토", "庚":"금", "辛":"금", "壬":"수", "癸":"수" };\nconst BRANCH_ELEMENTS = { "子":"수", "丑":"토", "寅":"목", "卯":"목", "辰":"토", "巳":"화", "午":"화", "未":"토", "申":"금", "酉":"금", "戌":"토", "亥":"수" };
+const STEM_ELEMENTS = { "甲":"목", "乙":"목", "丙":"화", "丁":"화", "戊":"토", "己":"토", "庚":"금", "辛":"금", "壬":"수", "癸":"수" };
+const BRANCH_ELEMENTS = { "子":"수", "丑":"토", "寅":"목", "卯":"목", "辰":"토", "巳":"화", "午":"화", "未":"토", "申":"금", "酉":"금", "戌":"토", "亥":"수" };
 const ELEMENT_NAMES = ["목", "화", "토", "금", "수"];
 const ELEMENT_COLORS = { "목":"#658b68", "화":"#bd765d", "토":"#b59a62", "금":"#8c9ba7", "수":"#6486a8" };
 const TIME_HOURS = { "子時":23, "丑時":1, "寅時":3, "卯時":5, "辰時":7, "巳時":9, "午時":11, "未時":13, "申時":15, "酉時":17, "戌時":19, "亥時":21 };
@@ -22,15 +23,19 @@ function formatKoreanDate(value) {
   }).format(date);
 }
 
-function parseDate(value) {
+function parseDate(value, lunarCalendar = false) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
   if (!match) throw new Error("생년월일 또는 날짜를 확인해 주세요.");
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const check = new Date(year, month - 1, day);
-  if (check.getFullYear() !== year || check.getMonth() !== month - 1 || check.getDate() !== day) {
-    throw new Error("실제 달력에 존재하는 날짜를 입력해 주세요.");
+  if (lunarCalendar) {
+    if (month < 1 || month > 12 || day < 1 || day > 30) throw new Error("음력 날짜를 확인해 주세요.");
+  } else {
+    const check = new Date(year, month - 1, day);
+    if (check.getFullYear() !== year || check.getMonth() !== month - 1 || check.getDate() !== day) {
+      throw new Error("실제 양력 달력에 존재하는 날짜를 입력해 주세요.");
+    }
   }
   if (year < 1900 || year > 2100) throw new Error("현재 계산 범위는 1900년부터 2100년까지입니다.");
   return { year, month, day };
@@ -51,7 +56,7 @@ function countElements(pillars) {
   const counts = { "목":0, "화":0, "토":0, "금":0, "수":0 };
   pillars.forEach((pillar) => {
     [...pillar].forEach((character) => {
-      const element = STEM_ELEMENTS[character];
+      const element = STEM_ELEMENTS[character] || BRANCH_ELEMENTS[character];
       if (element) counts[element] += 1;
     });
   });
@@ -167,7 +172,8 @@ $("#sajuForm").addEventListener("submit", (event) => {
       throw new Error("만세력 계산 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하고 페이지를 새로고침해 주세요.");
     }
     const form = new FormData(event.currentTarget);
-    const birth = parseDate(form.get("birthDate"));
+    const calendarType = form.get("calendarType");
+    const birth = parseDate(form.get("birthDate"), calendarType === "lunar");
     const time = form.get("birthTime");
     const lunar = getLunarObject(birth, time);
     const eightChar = lunar.getEightChar();
