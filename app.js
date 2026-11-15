@@ -228,24 +228,43 @@ $("#sajuForm").addEventListener("submit", (event) => {
   calculateSaju(true);
 });
 
-$("#checkDate").addEventListener("click", () => {
+function checkSelectedDate() {
   const value = $("#fortuneDate").value;
+  const result = $("#dateResult");
+
   if (!value) {
-    $("#dateResult").textContent = "먼저 날짜를 선택해 주세요.";
+    result.textContent = "먼저 날짜를 선택해 주세요.";
     return;
   }
+
   try {
     parseDate(value);
+
+    // Recover the chart from the saved birth profile if the page state was reset.
+    if (!currentChart && restoreProfile()) {
+      calculateSaju(false);
+    }
+
     if (!currentChart) {
-      $("#dateResult").textContent = "먼저 나의 사주 정보를 입력해 주세요.";
+      result.textContent = "먼저 생년월일을 입력하고 ‘사주 계산하기’를 눌러 주세요.";
       return;
     }
-    updateDailyFortune(value);
+
+    const reading = buildDailyReading(value);
+    if (!reading) {
+      throw new Error("선택한 날짜의 운세를 계산하지 못했습니다.");
+    }
+
+    $("#dailyTitle").textContent = reading.title;
+    $("#dailyText").textContent = reading.text;
+    result.textContent = "확인 완료 · " + reading.detail;
     $("#todayDate").textContent = formatKoreanDate(value);
   } catch (error) {
-    $("#dateResult").textContent = error.message;
+    result.textContent = "날짜 확인 중 오류가 발생했습니다: " + (error.message || "날짜를 다시 선택해 주세요.");
   }
-});
+}
+
+$("#checkDate").addEventListener("click", checkSelectedDate);
 
 $("#fortuneDate").addEventListener("change", () => {
   const value = $("#fortuneDate").value;
