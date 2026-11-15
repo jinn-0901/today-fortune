@@ -165,13 +165,48 @@ const today = localDateString();
 $("#todayDate").textContent = formatKoreanDate(today);
 $("#fortuneDate").value = today;
 
-$("#sajuForm").addEventListener("submit", (event) => {
-  event.preventDefault();
+const PROFILE_STORAGE_KEY = "today-fortune-profile-v1";
+
+function saveProfile(form) {
+  const data = new FormData(form);
+  const profile = {
+    birthDate: data.get("birthDate"),
+    calendarType: data.get("calendarType"),
+    birthTime: data.get("birthTime"),
+    gender: data.get("gender"),
+    birthRegion: data.get("birthRegion")
+  };
+  try {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  } catch (error) {
+    showError("이 브라우저에서는 입력 정보를 저장할 수 없습니다. 브라우저 저장 공간 설정을 확인해 주세요.");
+  }
+}
+
+function restoreProfile() {
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!raw) return false;
+    const profile = JSON.parse(raw);
+    if (!profile || !profile.birthDate || !profile.calendarType) return false;
+    $("#birthDate").value = profile.birthDate;
+    const calendarRadio = document.querySelector(`input[name="calendarType"][value="${profile.calendarType}"]`);
+    if (calendarRadio) calendarRadio.checked = true;
+    $("#birthTime").value = profile.birthTime || "unknown";
+    $("#gender").value = profile.gender || "";
+    $("#birthRegion").value = profile.birthRegion || "";
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function calculateSaju(shouldScroll = true) {
   try {
     if (typeof Lunar === "undefined" || typeof Solar === "undefined") {
-      throw new Error("만세력 계산 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하고 페이지를 새로고침해 주세요.");
+      throw new Error("내장 만세력 파일을 불러오지 못했습니다. 페이지를 새로고침해 주세요.");
     }
-    const form = new FormData(event.currentTarget);
+    const form = new FormData($("#sajuForm"));
     const calendarType = form.get("calendarType");
     const birth = parseDate(form.get("birthDate"), calendarType === "lunar");
     const time = form.get("birthTime");
@@ -179,12 +214,18 @@ $("#sajuForm").addEventListener("submit", (event) => {
     const eightChar = lunar.getEightChar();
     eightChar.setSect(2);
     renderChart(eightChar, birth, time === "unknown");
+    saveProfile($("#sajuForm"));
     $("#formResult").hidden = true;
     updateDailyFortune($("#fortuneDate").value || today);
-    $("#sajuResult").scrollIntoView({ behavior:"smooth", block:"nearest" });
+    if (shouldScroll) $("#sajuResult").scrollIntoView({ behavior:"smooth", block:"nearest" });
   } catch (error) {
     showError(error.message || "사주를 계산하지 못했습니다. 입력한 정보를 확인해 주세요.");
   }
+}
+
+$("#sajuForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  calculateSaju(true);
 });
 
 $("#checkDate").addEventListener("click", () => {
@@ -218,6 +259,9 @@ menuToggle.addEventListener("click", () => {
   menuToggle.setAttribute("aria-expanded", String(isOpen));
   menuToggle.setAttribute("aria-label", isOpen ? "메뉴 닫기" : "메뉴 열기");
 });
+// Restore the saved profile on this device and recalculate the chart.
+if (restoreProfile()) calculateSaju(false);
+
 mainNav.querySelectorAll("a").forEach((link) => {
   link.addEventListener("click", () => {
     mainNav.classList.remove("open");
