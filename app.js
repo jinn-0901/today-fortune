@@ -300,8 +300,7 @@ function checkSelectedDate() {
       throw new Error("선택한 날짜의 운세를 계산하지 못했습니다.");
     }
 
-    $("#dailyTitle").textContent = reading.title;
-    $("#dailyText").textContent = reading.text;
+    updateDailyFortune(value);
     result.textContent = "확인 완료 · " + reading.detail;
     $("#todayDate").textContent = formatKoreanDate(value);
   } catch (error) {
