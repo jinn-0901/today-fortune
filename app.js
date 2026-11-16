@@ -180,6 +180,7 @@ function updateDailyFortune(value) {
   if (!reading) {
     $("#dailyTitle").textContent = "사주 정보를 먼저 입력해 주세요";
     $("#dailyText").textContent = "생년월일을 입력하면 선택한 날짜의 운세를 확인할 수 있습니다.";
+    if ($("#dailyMeta")) $("#dailyMeta").textContent = "사주 정보를 입력하면 날짜별 간지와 오행 관계가 표시됩니다.";
     $("#dateResult").textContent = "사주 정보를 먼저 입력해 주세요.";
     return;
   }
