@@ -58,3 +58,77 @@
  .calendar-picker{padding:16px}
  .site-footer{padding:23px 20px}
 }
+
+
+/* Minimal interface with clearer fortune details */
+body{background:#faf9f6;color:#202b3a}
+.site-header{height:62px;border-bottom:1px solid #e9e6df;background:#faf9f6}
+.brand-mark{width:32px;height:32px;font-size:17px}
+.brand-copy strong{font-size:14px}
+.brand-copy small{font-size:8px}
+.main-nav{gap:26px}
+.nav-link{padding:21px 0 18px}
+.nav-link.active:after{bottom:10px}
+.header-cta{font-size:10px;padding:7px 11px}
+.hero{padding:48px max(8vw,28px) 42px;background:#172438}
+.hero h1{font-size:clamp(28px,3.5vw,40px);line-height:1.35}
+.hero-description{font-size:12px;line-height:1.8;margin:12px 0 18px}
+.hero-actions .button{min-height:40px}
+.hero-note{font-size:9px;margin-top:15px}
+.date-strip{background:#f1efe9;border-bottom:1px solid #e8e4da;min-height:58px}
+.date-strip strong{font-size:13px}
+.section{padding:54px max(8vw,28px)}
+.section-heading{margin-bottom:18px}
+.section-heading h2{font-size:25px}
+.section-heading .eyebrow{font-size:8px;margin-bottom:5px}
+.fortune-feature{display:block;padding:23px 25px;background:#172438;border-radius:5px}
+.gold-label{font-size:9px}
+.fortune-feature h3{font-size:19px;margin:7px 0}
+.fortune-feature p{font-size:12px;line-height:1.9;margin:0 0 12px;color:#d1d5db}
+.daily-meta{display:block;padding-top:10px;border-top:1px solid rgba(255,255,255,.15);font-size:10px;line-height:1.7;color:#d7c59e}
+.fortune-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.fortune-card{border:1px solid #e9e5dc;border-radius:5px;padding:18px 19px;background:#fff;min-height:0}
+.fortune-card .card-kicker{font-size:8px;letter-spacing:.1em;color:#9b865c;margin-bottom:5px}
+.fortune-card h3{font-size:15px;margin:0 0 8px}
+.fortune-card-title{font-size:12px;line-height:1.6;color:#876b3d;margin-bottom:7px}
+.fortune-card p{font-size:11px;line-height:1.9;color:#555e68}
+.saju-section{background:#f1efe9}
+.saju-panel{grid-template-columns:1fr;border:1px solid #e8e3d9;border-radius:5px;overflow:hidden}
+.saju-intro{padding:21px 25px;background:#172438}
+.saju-intro h3{font-size:18px;margin:0 0 6px}
+.saju-intro>p{font-size:10px;line-height:1.8}
+.saju-form{padding:25px}
+.form-row{margin-bottom:16px}
+.form-row>label,.calendar-picker>label{font-size:11px}
+.form-row input[type=date],.form-row input[type=text],.form-row select,.calendar-picker input{height:41px;border-radius:4px;font-size:12px}
+.segmented{height:41px;border-radius:4px;overflow:hidden}
+.segmented input:checked+span{background:#263950}
+.button{border-radius:4px}
+.form-submit{min-height:43px}
+.saju-result{border-radius:5px;background:#f7f5ef;padding:18px}
+.pillar-cell{border-radius:4px}
+.calendar-panel{grid-template-columns:1fr .9fr;gap:25px;padding:27px;border-radius:5px}
+.calendar-picker{border-radius:5px;background:#fff;padding:18px}
+.calendar-picker input{margin-bottom:10px}
+.button-outline{min-height:40px}
+.site-footer{padding:25px max(8vw,28px);background:#172438}
+@media(max-width:620px){
+ .site-header{height:60px}
+ .main-nav{top:59px}
+ .hero{padding:40px 22px 34px}
+ .hero h1{font-size:29px}
+ .hero-description{font-size:11px}
+ .section{padding:42px 19px}
+ .section-heading h2{font-size:23px}
+ .fortune-feature{padding:20px 18px}
+ .fortune-feature h3{font-size:18px}
+ .fortune-feature p{font-size:11px}
+ .daily-meta{font-size:9px}
+ .fortune-cards{grid-template-columns:1fr;gap:8px}
+ .fortune-card{padding:16px 17px}
+ .fortune-card p{font-size:11px}
+ .saju-intro{padding:19px}
+ .saju-form{padding:20px 16px}
+ .calendar-panel{grid-template-columns:1fr;padding:19px 16px}
+ .site-footer{padding:22px 19px}
+}
