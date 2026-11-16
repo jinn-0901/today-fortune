@@ -185,6 +185,7 @@ function updateDailyFortune(value) {
   }
   $("#dailyTitle").textContent = reading.title;
   $("#dailyText").textContent = reading.text;
+  if ($("#dailyMeta")) $("#dailyMeta").textContent = reading.detail;
   $("#dateResult").textContent = reading.detail;
 
   const cards = $("#fortuneCards");
